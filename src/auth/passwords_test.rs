@@ -11,6 +11,6 @@ fn test_verify_password() {
     let password = "password";
     let hash = hash_password(&password).expect("Hashing failed");
 
-    let verified = verify_password(&hash, password);
+    let verified = verify_password(&password, &hash);
     assert!(verified);
 }
