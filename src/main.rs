@@ -1,8 +1,11 @@
 use actix_web::{web, App, HttpServer, Responder};
 use sqlx::{Pool, Postgres};
 
+mod auth;
 pub mod config;
+mod types;
 
+#[derive(Clone)]
 pub struct AppState {
     pub pool: Pool<Postgres>,
     pub jwt_secret: String,
@@ -23,7 +26,7 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = AppState::new(pool, config.jwt_secret);
 
-    HttpServer::new(move || App::new().app_data(web::Data::new(app_state)))
+    HttpServer::new(move || App::new().app_data(web::Data::new(app_state.clone())))
         .bind(config.server_socket)?
         .run()
         .await?;
