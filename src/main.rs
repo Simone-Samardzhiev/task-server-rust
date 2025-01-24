@@ -1,9 +1,10 @@
-use actix_web::{web, App, HttpServer, Responder};
+use actix_web::{middleware, web, App, HttpServer, Responder};
 use sqlx::{Pool, Postgres};
 
-mod auth;
+pub mod auth;
 pub mod config;
-mod types;
+pub mod routes;
+pub mod types;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -26,10 +27,15 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = AppState::new(pool, config.jwt_secret);
 
-    HttpServer::new(move || App::new().app_data(web::Data::new(app_state.clone())))
-        .bind(config.server_socket)?
-        .run()
-        .await?;
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(app_state.clone()))
+            .wrap(middleware::Logger::default())
+            .configure(routes::user::config)
+    })
+    .bind(config.server_socket)?
+    .run()
+    .await?;
 
     Ok(())
 }
