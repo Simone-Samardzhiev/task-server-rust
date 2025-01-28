@@ -9,6 +9,7 @@ use time::{OffsetDateTime, PrimitiveDateTime};
 async fn register(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl Responder {
     let pool = &data.pool;
 
+    // Count the users with this email.
     let row = match sqlx::query("SELECT COUNT(id) FROM users WHERE email = $1")
         .bind(&user.email)
         .fetch_one(pool)
@@ -23,16 +24,20 @@ async fn register(user: web::Json<UserPayload>, data: web::Data<AppState>) -> im
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
+    // If the count is not equal to zero then the email is already in use so we return.
     if count != 0 {
         return HttpResponse::Conflict().body("User already registered");
     }
 
     let id = uuid::Uuid::new_v4();
+
+    // Hash the password for security.
     let hash = match auth::passwords::hash_password(&user.password) {
         Ok(hash) => hash,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
+    // Insert the user into the database.
     match sqlx::query("INSERT INTO users(id, email, password) VALUES ($1, $2, $3)")
         .bind(&id)
         .bind(&user.email)
@@ -45,30 +50,36 @@ async fn register(user: web::Json<UserPayload>, data: web::Data<AppState>) -> im
     }
 }
 
-async fn respond_with_token_group(data: web::Data<AppState>, id: uuid::Uuid, sub: uuid::Uuid) -> HttpResponse {
+async fn respond_with_token_group(
+    data: web::Data<AppState>,
+    id: uuid::Uuid,
+    sub: uuid::Uuid,
+) -> HttpResponse {
     let pool = &data.pool;
     let offset = OffsetDateTime::now_utc() + time::Duration::days(14);
     let expire = PrimitiveDateTime::new(offset.date(), offset.time());
 
+    // Add the token to the database.
     match sqlx::query!(
         "INSERT INTO tokens(id, user_id, expire_date) VALUES ($1, $2, $3)",
         &id,
         &sub,
         &expire
     )
-        .execute(pool)
-        .await
+    .execute(pool)
+    .await
     {
         Err(_) => return HttpResponse::InternalServerError().finish(),
         _ => {}
     }
 
+    // Create and encode refresh tokne and access token.
     let refresh_token = match auth::jwt::RefreshTokenClaims::new(
         id,
         sub,
         (chrono::Utc::now() + chrono::Duration::days(14)).timestamp(),
     )
-        .encode(&data.jwt_secret)
+    .encode(&data.jwt_secret)
     {
         Ok(refresh_token) => refresh_token,
         Err(_) => return HttpResponse::InternalServerError().finish(),
@@ -78,7 +89,7 @@ async fn respond_with_token_group(data: web::Data<AppState>, id: uuid::Uuid, sub
         sub,
         (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp(),
     )
-        .encode(&data.jwt_secret)
+    .encode(&data.jwt_secret)
     {
         Ok(access_token) => access_token,
         Err(_) => return HttpResponse::InternalServerError().finish(),
@@ -94,27 +105,31 @@ async fn respond_with_token_group(data: web::Data<AppState>, id: uuid::Uuid, sub
 async fn login(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl Responder {
     let pool = &data.pool;
 
+    // Get a user with the same email.
     let fetched_user = match sqlx::query_as!(
         types::user::User,
         "SELECT * FROM users WHERE email = $1",
         &user.email
     )
-        .fetch_one(pool)
-        .await
+    .fetch_one(pool)
+    .await
     {
         Ok(row) => row,
         Err(e) => {
             return match e {
+                // If the error is RowNotFound the user doesn't exist so we return.
                 sqlx::Error::RowNotFound => HttpResponse::NotFound().finish(),
                 _ => HttpResponse::InternalServerError().finish(),
             }
         }
     };
 
+    // Check if the passwords match.
     if !auth::passwords::verify_password(&user.password, &fetched_user.password) {
         return HttpResponse::Unauthorized().finish();
     }
 
+    // Delete any token connected with the user.
     match sqlx::query!("DELETE FROM tokens WHERE user_id = $1", &fetched_user.id)
         .execute(pool)
         .await
@@ -134,12 +149,14 @@ async fn refresh(req: HttpRequest, data: web::Data<AppState>) -> impl Responder 
     let extensions = req.extensions();
     let claims = match extensions.get::<auth::jwt::RefreshTokenClaims>() {
         Some(claims) => claims,
-        None => return HttpResponse::Unauthorized().finish()
+        None => return HttpResponse::Unauthorized().finish(),
     };
 
+    // Delete the token from the database so it can't be used again.
     match sqlx::query!("DELETE FROM tokens WHERE id = $1", &claims.id)
         .execute(&data.pool)
-        .await {
+        .await
+    {
         Err(_) => return HttpResponse::InternalServerError().finish(),
         _ => {}
     }
