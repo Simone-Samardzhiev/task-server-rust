@@ -1,8 +1,9 @@
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{web, App, HttpServer, middleware::Logger};
 use sqlx::{Pool, Postgres};
 
 pub mod auth;
 pub mod config;
+pub mod middleware;
 pub mod routes;
 pub mod types;
 
@@ -30,7 +31,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
-            .wrap(middleware::Logger::default())
+            .wrap(Logger::default())
             .configure(routes::user::config)
     })
     .bind(config.server_socket)?
