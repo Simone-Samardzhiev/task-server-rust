@@ -9,8 +9,7 @@ pub struct RefreshTokenClaims {
 }
 
 impl RefreshTokenClaims {
-    pub fn new(id: uuid::Uuid, sub: uuid::Uuid) -> Self {
-        let exp = (chrono::Utc::now() + chrono::Duration::days(14)).timestamp();
+    pub fn new(id: uuid::Uuid, sub: uuid::Uuid, exp: i64) -> Self {
         Self { id, sub, exp }
     }
 
@@ -25,6 +24,9 @@ impl RefreshTokenClaims {
         )
         .map(|data| data.claims)
     }
+    pub fn encode(&self, secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
+        encode(&self, secret)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,8 +36,7 @@ pub struct AccessTokenClaims {
 }
 
 impl AccessTokenClaims {
-    pub fn new(sub: uuid::Uuid) -> Self {
-        let exp = (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp();
+    pub fn new(sub: uuid::Uuid, exp: i64) -> Self {
         Self { sub, exp }
     }
 
@@ -50,9 +51,17 @@ impl AccessTokenClaims {
         )
         .map(|data| data.claims)
     }
+
+    pub fn encode(&self, secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
+        encode(&self, secret)
+    }
 }
 
-pub fn encode<T: Serialize>(claims: &T, secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
+/// Function that will return encoded token.
+pub fn encode<T: Serialize>(
+    claims: &T,
+    secret: &str,
+) -> Result<String, jsonwebtoken::errors::Error> {
     jsonwebtoken::encode(
         &Header::default(),
         &claims,
