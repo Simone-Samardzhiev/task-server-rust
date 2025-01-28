@@ -1,4 +1,3 @@
-use std::fs::exists;
 use crate::{auth, AppState};
 use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};
