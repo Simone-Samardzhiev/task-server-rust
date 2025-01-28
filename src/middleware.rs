@@ -1,3 +1,4 @@
+use std::fs::exists;
 use crate::{auth, AppState};
 use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};
@@ -34,6 +35,10 @@ pub async fn refresh_token_middleware(
     let claims = auth::jwt::RefreshTokenClaims::decode(&token, &app_data.jwt_secret)
         .map_err(|_| actix_web::error::ErrorUnauthorized(""))?;
 
+    if claims.exp < chrono::Utc::now().timestamp() {
+        return Err(actix_web::error::ErrorUnauthorized(""));
+    }
+
     req.extensions_mut().insert(claims);
     next.call(req).await
 }
@@ -53,6 +58,11 @@ pub async fn access_token_middleware(
 
     let claims = auth::jwt::AccessTokenClaims::decode(&token, &app_data.jwt_secret)
         .map_err(|_| actix_web::error::ErrorUnauthorized(""))?;
+
+    if claims.exp < chrono::Utc::now().timestamp() {
+        return Err(actix_web::error::ErrorUnauthorized(""));
+    }
+
     req.extensions_mut().insert(claims);
     next.call(req).await
 }
