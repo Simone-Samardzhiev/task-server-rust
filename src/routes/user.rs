@@ -1,6 +1,7 @@
+use crate::middleware::refresh_token_middleware;
 use crate::types::user::{TokenGroup, UserPayload};
 use crate::{auth, types, AppState};
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use sqlx::Row;
 use time::{OffsetDateTime, PrimitiveDateTime};
 
@@ -44,6 +45,51 @@ async fn register(user: web::Json<UserPayload>, data: web::Data<AppState>) -> im
     }
 }
 
+async fn respond_with_token_group(data: web::Data<AppState>, id: uuid::Uuid, sub: uuid::Uuid) -> HttpResponse {
+    let pool = &data.pool;
+    let offset = OffsetDateTime::now_utc() + time::Duration::days(14);
+    let expire = PrimitiveDateTime::new(offset.date(), offset.time());
+
+    match sqlx::query!(
+        "INSERT INTO tokens(id, user_id, expire_date) VALUES ($1, $2, $3)",
+        &id,
+        &sub,
+        &expire
+    )
+        .execute(pool)
+        .await
+    {
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+        _ => {}
+    }
+
+    let refresh_token = match auth::jwt::RefreshTokenClaims::new(
+        id,
+        sub,
+        (chrono::Utc::now() + chrono::Duration::days(14)).timestamp(),
+    )
+        .encode(&data.jwt_secret)
+    {
+        Ok(refresh_token) => refresh_token,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let access_token = match auth::jwt::AccessTokenClaims::new(
+        sub,
+        (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp(),
+    )
+        .encode(&data.jwt_secret)
+    {
+        Ok(access_token) => access_token,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    HttpResponse::Ok().json(TokenGroup {
+        refresh_token,
+        access_token,
+    })
+}
+
 #[post("/login")]
 async fn login(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl Responder {
     let pool = &data.pool;
@@ -53,8 +99,8 @@ async fn login(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl 
         "SELECT * FROM users WHERE email = $1",
         &user.email
     )
-    .fetch_one(pool)
-    .await
+        .fetch_one(pool)
+        .await
     {
         Ok(row) => row,
         Err(e) => {
@@ -79,49 +125,40 @@ async fn login(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl 
 
     let id = uuid::Uuid::new_v4();
     let sub = fetched_user.id;
-    let offset = OffsetDateTime::now_utc() + time::Duration::days(14);
-    let expire = PrimitiveDateTime::new(offset.date(), offset.time());
 
-    match sqlx::query!(
-        "INSERT INTO tokens(id, user_id, expire_date) VALUES ($1, $2, $3)",
-        &id,
-        &sub,
-        &expire
-    )
-    .execute(pool)
-    .await
-    {
+    respond_with_token_group(data, id, sub).await
+}
+
+#[get("/refresh")]
+async fn refresh(req: HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    let extensions = req.extensions();
+    let claims = match extensions.get::<auth::jwt::RefreshTokenClaims>() {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish()
+    };
+
+    match sqlx::query!("DELETE FROM tokens WHERE id = $1", &claims.id)
+        .execute(&data.pool)
+        .await {
         Err(_) => return HttpResponse::InternalServerError().finish(),
         _ => {}
     }
 
-    let refresh_token = match auth::jwt::RefreshTokenClaims::new(
-        id,
-        sub,
-        (chrono::Utc::now() + chrono::Duration::days(14)).timestamp(),
-    )
-    .encode(&data.jwt_secret)
-    {
-        Ok(refresh_token) => refresh_token,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
+    let id = uuid::Uuid::new_v4();
+    let sub = claims.sub;
 
-    let access_token = match auth::jwt::AccessTokenClaims::new(
-        sub,
-        (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp(),
-    )
-    .encode(&data.jwt_secret)
-    {
-        Ok(access_token) => access_token,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-
-    HttpResponse::Ok().json(TokenGroup {
-        refresh_token,
-        access_token,
-    })
+    respond_with_token_group(data, id, sub).await
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/users").service(register).service(login));
+    cfg.service(
+        web::scope("/users")
+            .service(register)
+            .service(login)
+            .service(
+                web::scope("")
+                    .service(refresh)
+                    .wrap(actix_web::middleware::from_fn(refresh_token_middleware)),
+            ),
+    );
 }
