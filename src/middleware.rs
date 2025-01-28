@@ -1,6 +1,6 @@
 use crate::{auth, AppState};
 use actix_web::body::MessageBody;
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse};
+use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::http::header;
 use actix_web::middleware::Next;
 use actix_web::{web, HttpMessage};
