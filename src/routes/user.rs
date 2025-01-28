@@ -3,7 +3,6 @@ use crate::types::user::{TokenGroup, UserPayload};
 use crate::{auth, types, AppState};
 use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use sqlx::Row;
-use time::{OffsetDateTime, PrimitiveDateTime};
 
 #[post("/register")]
 async fn register(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl Responder {
@@ -56,15 +55,11 @@ async fn respond_with_token_group(
     sub: uuid::Uuid,
 ) -> HttpResponse {
     let pool = &data.pool;
-    let offset = OffsetDateTime::now_utc() + time::Duration::days(14);
-    let expire = PrimitiveDateTime::new(offset.date(), offset.time());
-
-    // Add the token to the database.
     match sqlx::query!(
         "INSERT INTO tokens(id, user_id, expire_date) VALUES ($1, $2, $3)",
         &id,
         &sub,
-        &expire
+        (chrono::Utc::now() + chrono::Duration::days(14)).naive_utc()
     )
     .execute(pool)
     .await
@@ -73,7 +68,7 @@ async fn respond_with_token_group(
         _ => {}
     }
 
-    // Create and encode refresh tokne and access token.
+    // Create and encode refresh token and access token.
     let refresh_token = match auth::jwt::RefreshTokenClaims::new(
         id,
         sub,
@@ -120,7 +115,7 @@ async fn login(user: web::Json<UserPayload>, data: web::Data<AppState>) -> impl 
                 // If the error is RowNotFound the user doesn't exist so we return.
                 sqlx::Error::RowNotFound => HttpResponse::NotFound().finish(),
                 _ => HttpResponse::InternalServerError().finish(),
-            }
+            };
         }
     };
 
