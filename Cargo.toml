@@ -4,10 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4"
-sqlx = { version = "0", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
-uuid = { version = "1", features = ["serde", "v4"] }
-serde = "1"
-chrono = { version = "0", features = ["serde"] }
-jsonwebtoken = "9"
-bcrypt = "0"
+axum = "0"
+tokio = { features = ["full"], version = "1" }
