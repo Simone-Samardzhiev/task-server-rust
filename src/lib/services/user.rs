@@ -5,13 +5,13 @@ use axum::http::StatusCode;
 use std::future::Future;
 use std::sync::Arc;
 
-trait UserService: Send + Sync + 'static {
+trait UserService: Send + Sync + Clone + 'static {
     fn register(
         &self,
         user: &mut UserPayload,
     ) -> impl Future<Output = APIResult<StatusCode>> + Send;
 }
-
+#[derive(Clone)]
 pub struct DefaultUserService<T: UserRepository> {
     repository: Arc<T>,
 }
