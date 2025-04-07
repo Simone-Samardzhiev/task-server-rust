@@ -38,7 +38,7 @@ impl IntoResponse for APIErrorResponse {
     }
 }
 
-/// `APIResult is returned by services`
+/// `APIResult` is returned by services
 pub type APIResult<T> = Result<T, APIErrorResponse>;
 
 impl From<sqlx::Error> for APIErrorResponse {
