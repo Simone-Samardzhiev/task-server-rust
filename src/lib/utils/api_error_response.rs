@@ -15,11 +15,6 @@ impl APIErrorResponse {
     }
 }
 
-pub const INTERNAL_SERVER_ERROR_RESPONSE: APIErrorResponse = APIErrorResponse::new(
-    StatusCode::INTERNAL_SERVER_ERROR,
-    String::from("Internal Server Error"),
-);
-
 impl Serialize for APIErrorResponse {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -42,7 +37,7 @@ impl IntoResponse for APIErrorResponse {
 pub type APIResult<T> = Result<T, APIErrorResponse>;
 
 impl From<sqlx::Error> for APIErrorResponse {
-    fn from(_: sqlx::Error) -> Self {
-        INTERNAL_SERVER_ERROR_RESPONSE
+    fn from(error: sqlx::Error) -> Self {
+        Self::new(StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
     }
 }

@@ -1,11 +1,11 @@
 use crate::models::user::UserPayload;
 use crate::repositories::user::UserRepository;
-use crate::utils::api_error_response::{APIResult, INTERNAL_SERVER_ERROR_RESPONSE};
+use crate::utils::api_error_response::{APIErrorResponse, APIResult};
 use axum::http::StatusCode;
 use std::future::Future;
 use std::sync::Arc;
 
-trait UserService: Send + Sync + Clone + 'static {
+pub trait UserService: Send + Sync + Clone + 'static {
     fn register(
         &self,
         user: &mut UserPayload,
@@ -17,23 +17,29 @@ pub struct DefaultUserService<T: UserRepository> {
 }
 
 impl<T: UserRepository> DefaultUserService<T> {
-    pub fn new(repository: T) -> Self {
-        repository
+    pub fn new(repository: Arc<T>) -> Self {
+        Self { repository }
     }
 }
 
 impl<T: UserRepository> UserService for DefaultUserService<T> {
-    async fn register(
-        &self,
-        user: &mut UserPayload,
-    ) -> impl Future<Output = APIResult<StatusCode>> + Send {
-        self.repository
+    async fn register(&self, user: &mut UserPayload) -> APIResult<StatusCode> {
+        if !self
+            .repository
             .check_user_email_username(&user.email, &user.username)
-            .await?;
+            .await?
+        {
+            return Err(APIErrorResponse::new(
+                StatusCode::CONFLICT,
+                String::from("Email or password already exists"),
+            ));
+        }
 
-        user.password = bcrypt::hash(&user.password, bcrypt::DEFAULT_COST)
-            .map_err(INTERNAL_SERVER_ERROR_RESPONSE)?;
+        user.password = bcrypt::hash(&user.password, bcrypt::DEFAULT_COST).map_err(|err| {
+            APIErrorResponse::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+        })?;
 
-        self.repository.add_user(&user).await
+        self.repository.add_user(&user).await?;
+        Ok(StatusCode::CREATED)
     }
 }

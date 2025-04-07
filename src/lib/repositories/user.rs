@@ -19,7 +19,10 @@ pub trait UserRepository: Send + Sync + Clone + 'static {
     /// `add_user` add the user.
     /// # Error
     /// It can return any error related to database connection.
-    fn add_user(&self, user: &user::UserPayload) -> impl Future<Output = Result<(), sqlx::Error>> + Send;
+    fn add_user(
+        &self,
+        user: &user::UserPayload,
+    ) -> impl Future<Output = Result<(), sqlx::Error>> + Send;
 }
 
 /// `PostgresUserRepository` is implementation of `UserRepository` with postgres
@@ -56,5 +59,8 @@ impl UserRepository for PostgresUserRepository {
             .bind(&user.username)
             .bind(&user.password)
             .execute(&self.db)
+            .await?;
+
+        Ok(())
     }
 }

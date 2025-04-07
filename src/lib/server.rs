@@ -1,9 +1,21 @@
+use crate::services::user::UserService;
 use axum::Router;
+use std::sync::Arc;
+use axum::routing::post;
 use tokio::net::TcpListener;
+use crate::handlers;
 
 /// `ServerConfig` holds server configuration.
 pub struct ServerConfig<'a> {
     server_addr: &'a str,
+}
+
+#[derive(Clone)]
+pub struct AppState<T>
+where
+    T: UserService,
+{
+    pub user_service: Arc<T>,
 }
 
 impl<'a> ServerConfig<'a> {
@@ -21,9 +33,21 @@ pub struct Server {
 
 impl Server {
     /// `new` will create a new server bound to server address specified in `ServerConfig`
-    pub async fn new(server_config: ServerConfig<'_>) -> Result<Self, std::io::Error> {
+    pub async fn new(
+        server_config: ServerConfig<'_>,
+        user_service: impl UserService,
+    ) -> Result<Self, std::io::Error> {
+        let app_state = AppState {
+            user_service: Arc::new(user_service),
+        };
+
         let tcp_listener = TcpListener::bind(server_config.server_addr).await?;
-        let router = Router::new();
+        let router = Router::new()
+            .nest("/users", Router::new()
+                .route("/register", post(handlers::user::register))
+            )
+            .with_state(app_state);
+
         Ok(Server {
             listener: tcp_listener,
             router,
