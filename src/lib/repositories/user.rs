@@ -3,7 +3,7 @@ use sqlx::{query, PgPool, Row};
 use std::future::Future;
 
 /// `UserRepository` manages user data.
-trait UserRepository: Send + Sync + Clone + 'static {
+pub trait UserRepository: Send + Sync + Clone + 'static {
     /// `check_user_email_username` check if the user email and username are unique
     /// # Error
     /// It can return any error related to database connection.
@@ -19,12 +19,12 @@ trait UserRepository: Send + Sync + Clone + 'static {
     /// `add_user` add the user.
     /// # Error
     /// It can return any error related to database connection.
-    fn add_user(&self, user: &user::User) -> impl Future<Output = Result<(), sqlx::Error>> + Send;
+    fn add_user(&self, user: &user::UserPayload) -> impl Future<Output = Result<(), sqlx::Error>> + Send;
 }
 
 /// `PostgresUserRepository` is implementation of `UserRepository` with postgres
 #[derive(Clone)]
-struct PostgresUserRepository {
+pub struct PostgresUserRepository {
     db: PgPool,
 }
 
