@@ -114,10 +114,22 @@ impl UserPayload {
 
 /// `User` holds used data.
 pub struct User {
-    id: i64,
-    email: String,
-    username: String,
-    password: String,
+    pub id: i64,
+    pub email: String,
+    pub username: String,
+    pub password: String,
+}
+
+impl User {
+    pub fn new(id: i64, email: String, username: String, password: String) -> Self {
+        Self {
+            id,
+            email,
+            username,
+            password,
+        }
+    }
+
 }
 
 mod tests {
