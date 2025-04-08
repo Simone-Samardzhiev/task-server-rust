@@ -5,3 +5,4 @@ pub mod repositories;
 pub mod services;
 mod utils;
 pub mod handlers;
+mod auth;

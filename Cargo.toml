@@ -18,3 +18,5 @@ dotenvy = "0.15.7"
 sqlx = { version = "0.8.3", features = ["postgres", "runtime-tokio", "uuid"] }
 uuid = { version = "1.16.0", features = ["serde", "v4", "fast-rng"] }
 bcrypt = "0.17.0"
+jsonwebtoken = "9.3.1"
+chrono = "0.4.40"

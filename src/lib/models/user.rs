@@ -288,5 +288,9 @@ mod tests {
                 )),
             ),
         ];
+
+        for test in tests {
+            assert_eq!(test.expected, test.user_payload.validate());
+        }
     }
 }
