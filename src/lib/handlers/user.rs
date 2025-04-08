@@ -10,5 +10,8 @@ pub async fn register<T: UserService>(
     State(app): State<AppState<T>>,
     Json(mut user): Json<UserPayload>,
 ) -> APIResult<StatusCode> {
+    if let Some(error) = user.validate() {
+        return Err(error);
+    }
     app.user_service.register(&mut user).await
 }

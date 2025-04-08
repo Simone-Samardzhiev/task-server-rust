@@ -31,7 +31,7 @@ impl<T: UserRepository> UserService for DefaultUserService<T> {
         {
             return Err(APIErrorResponse::new(
                 StatusCode::CONFLICT,
-                String::from("Email or password already exists"),
+                String::from("Email or username already exists"),
             ));
         }
 

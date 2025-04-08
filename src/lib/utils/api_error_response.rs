@@ -5,6 +5,7 @@ use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 
 /// `APIErrorResponse is the start way to return error message.
+#[derive(Debug, PartialEq)]
 pub struct APIErrorResponse {
     status: StatusCode,
     message: String,
