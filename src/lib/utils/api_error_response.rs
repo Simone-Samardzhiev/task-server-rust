@@ -4,7 +4,7 @@ use axum::Json;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 
-/// `APIErrorResponse is the start way to return error message.
+/// `APIErrorResponse is the standardized way to return error message.
 #[derive(Debug, PartialEq)]
 pub struct APIErrorResponse {
     status: StatusCode,
