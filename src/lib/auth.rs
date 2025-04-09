@@ -1,3 +1,9 @@
+use crate::server::AuthState;
+use crate::utils::api_error_response::{APIErrorResponse, APIResult};
+use axum::extract::{Request, State};
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::response::IntoResponse;
 use chrono::Utc;
 use jsonwebtoken::errors::Error as JWTError;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header};
@@ -5,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Struct holding access claims used for access to authorized API points
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessClaims {
     pub sub: i64,
     pub exp: usize,
@@ -21,7 +27,7 @@ impl AccessClaims {
 }
 
 /// Struct holding refresh claims used for revalidating new access token.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RefreshClaims {
     pub jti: Uuid,
     pub sub: i64,
@@ -44,6 +50,7 @@ impl RefreshClaims {
 }
 
 /// Struct used for encoding and decoding tokens.
+#[derive(Clone)]
 pub struct Authenticator {
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
@@ -104,6 +111,77 @@ impl Authenticator {
 
         Ok(token_data.claims)
     }
+}
+
+fn extract_token(request: &Request) -> Option<String> {
+    let header = request
+        .headers()
+        .get("Authentication")
+        .and_then(|v| v.to_str().ok());
+
+    match header {
+        Some(token) => {
+            if token.starts_with("Bearer") {
+                Some(token[7..].to_string())
+            } else {
+                None
+            }
+        }
+        None => None,
+    }
+}
+
+async fn access_token_claims(
+    State(app): State<AuthState>,
+    mut request: Request,
+    next: Next,
+) -> APIResult<impl IntoResponse> {
+    let token = match extract_token(&request) {
+        Some(token) => token,
+        None => {
+            return Err(APIErrorResponse::new(
+                StatusCode::UNAUTHORIZED,
+                String::from("Unauthorized"),
+            ));
+        }
+    };
+
+    let claims = app.authenticator.verify_access_token(&token).map_err(|_| {
+        APIErrorResponse::new(StatusCode::UNAUTHORIZED, String::from("Unauthorized"))
+    })?;
+
+    request.extensions_mut().insert(claims);
+
+    let response = next.run(request).await;
+    Ok(response)
+}
+
+async fn refresh_token_claims(
+    State(app): State<AuthState>,
+    mut request: Request,
+    next: Next,
+) -> APIResult<impl IntoResponse> {
+    let token = match extract_token(&request) {
+        Some(token) => token,
+        None => {
+            return Err(APIErrorResponse::new(
+                StatusCode::UNAUTHORIZED,
+                String::from("Unauthorized"),
+            ));
+        }
+    };
+
+    let claims = app
+        .authenticator
+        .verify_refresh_token(&token)
+        .map_err(|_| {
+            APIErrorResponse::new(StatusCode::UNAUTHORIZED, String::from("Unauthorized"))
+        })?;
+
+    request.extensions_mut().insert(claims);
+
+    let response = next.run(request).await;
+    Ok(response)
 }
 
 #[cfg(test)]
