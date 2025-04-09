@@ -25,7 +25,7 @@ impl Config {
     pub fn new_from_env() -> Result<Self, VarError> {
         let server_addr = var(SERVER_ADDR_KEY)?;
         let database_url = var(DATABASE_URL_KEY)?;
-        let secret = var("SECRET")?;
+        let secret = var(SECRET_KEY)?;
         Ok(Self {
             server_addr,
             database_url,

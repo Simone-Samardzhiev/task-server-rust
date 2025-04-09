@@ -82,7 +82,9 @@ impl Server {
         let router = Router::new()
             .nest(
                 "/users",
-                Router::new().route("/register", post(handlers::user::register)),
+                Router::new()
+                    .route("/register", post(handlers::user::register))
+                    .route("/login", post(handlers::user::login)),
             )
             .with_state(app_state);
 
