@@ -13,7 +13,7 @@ pub trait TokenRepository: Send + Sync + Clone + 'static {
         &self,
         id: Uuid,
         exp: NaiveDateTime,
-        user_id: i64,
+        user_id: i32,
     ) -> impl Future<Output = Result<(), SQLError>> + Send;
 }
 
@@ -30,7 +30,7 @@ impl PostgresTokenRepository {
 }
 
 impl TokenRepository for PostgresTokenRepository {
-    async fn add_token(&self, id: Uuid, exp: NaiveDateTime, user_id: i64) -> Result<(), SQLError> {
+    async fn add_token(&self, id: Uuid, exp: NaiveDateTime, user_id: i32) -> Result<(), SQLError> {
         query("INSERT INTO tokens (id, exp, user_id) VALUES ($1, $2, $3)")
             .bind(id)
             .bind(exp)

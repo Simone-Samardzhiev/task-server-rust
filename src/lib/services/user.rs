@@ -47,7 +47,7 @@ where
         }
     }
 
-    async fn create_token_group(&self, user_id: i64) -> APIResult<TokenGroup> {
+    async fn create_token_group(&self, user_id: i32) -> APIResult<TokenGroup> {
         let access_token = self
             .authenticator
             .new_access_token(

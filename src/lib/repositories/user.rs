@@ -83,7 +83,7 @@ impl UserRepository for PostgresUserRepository {
             .fetch_one(&self.db)
             .await?;
 
-        let id: i64 = result.try_get(0)?;
+        let id: i32 = result.try_get(0)?;
         let email: String = result.try_get(1)?;
         let username: String = result.try_get(2)?;
         let password: String = result.try_get(3)?;

@@ -13,7 +13,7 @@ use uuid::Uuid;
 /// Struct holding access claims used for access to authorized API points
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessClaims {
-    pub sub: i64,
+    pub sub: i32,
     pub exp: usize,
     pub iat: usize,
     pub iss: String,
@@ -21,7 +21,7 @@ pub struct AccessClaims {
 
 impl AccessClaims {
     /// Function that will create new `AccessClaims`
-    pub fn new(sub: i64, exp: usize, iat: usize, iss: String) -> Self {
+    pub fn new(sub: i32, exp: usize, iat: usize, iss: String) -> Self {
         Self { sub, exp, iat, iss }
     }
 }
@@ -30,7 +30,7 @@ impl AccessClaims {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RefreshClaims {
     pub jti: Uuid,
-    pub sub: i64,
+    pub sub: i32,
     pub exp: usize,
     pub iat: usize,
     pub iss: String,
@@ -38,7 +38,7 @@ pub struct RefreshClaims {
 
 impl RefreshClaims {
     /// Function that will create new `RefreshClaims`
-    pub fn new(jti: Uuid, sub: i64, exp: usize, iat: usize, iss: String) -> Self {
+    pub fn new(jti: Uuid, sub: i32, exp: usize, iat: usize, iss: String) -> Self {
         Self {
             jti,
             sub,
@@ -66,7 +66,7 @@ impl Authenticator {
     }
 
     /// Method used to create new `AccessClaims` and hash them into string
-    pub fn new_access_token(&self, sub: i64, exp: usize) -> Result<String, JWTError> {
+    pub fn new_access_token(&self, sub: i32, exp: usize) -> Result<String, JWTError> {
         let claims = AccessClaims::new(
             sub,
             exp,
@@ -89,7 +89,7 @@ impl Authenticator {
     }
 
     /// Method used to create new `RefreshClaims` and hash them into string.
-    pub fn new_refresh_token(&self, jti: Uuid, sub: i64, exp: usize) -> Result<String, JWTError> {
+    pub fn new_refresh_token(&self, jti: Uuid, sub: i32, exp: usize) -> Result<String, JWTError> {
         let claims = RefreshClaims::new(
             jti,
             sub,

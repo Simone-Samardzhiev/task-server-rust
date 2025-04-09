@@ -20,6 +20,7 @@ pub async fn register<T: UserService>(
 pub async fn login<T: UserService>(
     State(app): State<AppState<T>>,
     Json(user): Json<UserPayload>,
-) -> APIResult<TokenGroup> {
-    app.user_service.login(&user).await
+) -> APIResult<Json<TokenGroup>> {
+    let group = app.user_service.login(&user).await?;
+    Ok(Json(group))
 }
