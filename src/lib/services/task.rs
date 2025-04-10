@@ -11,12 +11,17 @@ use uuid::Uuid;
 pub trait TaskService: Send + Sync + Clone + 'static {
     /// Method that will add a new task.
     /// # Returns
-    /// the newly created task.
+    /// The newly created task.
     fn add_task(
         &self,
         task: &TaskPayload,
         claims: AccessClaims,
     ) -> impl Future<Output = APIResult<Task>> + Send;
+
+    /// Method that will fetch all task of a user.
+    /// # Returns
+    /// Vector will all tasks.
+    fn get_task(&self, claims: AccessClaims) -> impl Future<Output = APIResult<Vec<Task>>> + Send;
 }
 
 #[derive(Clone)]
@@ -52,5 +57,10 @@ impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
         self.repository.add_task(&task, claims.sub).await?;
 
         Ok(task)
+    }
+
+    async fn get_task(&self, claims: AccessClaims) -> APIResult<Vec<Task>> {
+        let tasks = self.repository.get_tasks_by_user_id(claims.sub).await?;
+        Ok(tasks)
     }
 }
