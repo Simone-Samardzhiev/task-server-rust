@@ -94,12 +94,13 @@ impl TaskRepository for PostgresTaskRepository {
 
     async fn update_task(&self, task: &Task) -> Result<bool, SQLXError> {
         let result = query(
-            "UPDATE tasks SET name = $2, description = $3, priority = $4, date = $5 WHERE id = $6",
+            "UPDATE tasks SET name = $1, description = $2, priority = $3, date = $4 WHERE id = $5",
         )
         .bind(&task.name)
         .bind(&task.description)
         .bind(&task.priority)
         .bind(&task.date)
+        .bind(task.id)
         .execute(&self.db)
         .await?;
 
