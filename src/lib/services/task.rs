@@ -22,6 +22,9 @@ pub trait TaskService: Send + Sync + Clone + 'static {
     /// # Returns
     /// Vector will all tasks.
     fn get_task(&self, claims: AccessClaims) -> impl Future<Output = APIResult<Vec<Task>>> + Send;
+
+    /// Method that will update an existing task.
+    fn update_task(&self, task: &Task) -> impl Future<Output = APIResult<()>> + Send;
 }
 
 #[derive(Clone)]
@@ -62,5 +65,23 @@ impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
     async fn get_task(&self, claims: AccessClaims) -> APIResult<Vec<Task>> {
         let tasks = self.repository.get_tasks_by_user_id(claims.sub).await?;
         Ok(tasks)
+    }
+
+    async fn update_task(&self, task: &Task) -> APIResult<()> {
+        if !self.repository.check_priority(&task.priority).await? {
+            return Err(APIErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                String::from("Invalid priority"),
+            ));
+        }
+
+        if !self.repository.update_task(&task).await? {
+            return Err(APIErrorResponse::new(
+                StatusCode::NOT_FOUND,
+                String::from("Task not found"),
+            ));
+        }
+
+        Ok(())
     }
 }
