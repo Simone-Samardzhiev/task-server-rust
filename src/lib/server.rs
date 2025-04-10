@@ -4,7 +4,7 @@ use crate::services::task::TaskService;
 use crate::services::user::UserService;
 use axum::extract::FromRef;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -153,6 +153,7 @@ impl Server {
                     .route("/add", post(handlers::task::add_task))
                     .route("/get", get(handlers::task::get_tasks))
                     .route("/update", put(handlers::task::update_task))
+                    .route("/delete/{id}", delete(handlers::task::delete_task))
                     .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
             )
             .with_state(app_state);

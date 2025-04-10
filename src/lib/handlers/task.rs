@@ -3,9 +3,10 @@ use crate::models::task::{Task, TaskPayload};
 use crate::server::TaskState;
 use crate::services::task::TaskService;
 use crate::utils::api_error_response::APIResult;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::{Extension, Json};
+use uuid::Uuid;
 
 pub async fn add_task<T: TaskService>(
     State(app): State<TaskState<T>>,
@@ -29,5 +30,13 @@ pub async fn update_task<T: TaskService>(
     Json(task): Json<Task>,
 ) -> APIResult<StatusCode> {
     app.task_service.update_task(&task).await?;
+    Ok(StatusCode::OK)
+}
+
+pub async fn delete_task<T: TaskService>(
+    State(app): State<TaskState<T>>,
+    Path(id): Path<Uuid>,
+) -> APIResult<StatusCode> {
+    app.task_service.delete_task(id).await?;
     Ok(StatusCode::OK)
 }
