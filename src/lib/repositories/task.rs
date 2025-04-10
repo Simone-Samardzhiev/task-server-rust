@@ -25,7 +25,7 @@ pub trait TaskRepository: Send + Sync + Clone + 'static {
     fn get_tasks_by_user_id(
         &self,
         user_id: i32,
-    ) -> impl Future<Output = Result<Vec<Task>, sqlx::Error>>;
+    ) -> impl Future<Output = Result<Vec<Task>, sqlx::Error>> + Send;
 }
 
 /// Repository that implements `TaskRepository` using postgres.
@@ -78,11 +78,11 @@ impl TaskRepository for PostgresTaskRepository {
         let mut result: Vec<Task> = Vec::with_capacity(rows.len());
 
         for row in rows {
-            let id: Uuid = row.get(0)?;
-            let name: String = row.get(1)?;
-            let description: String = row.get(2)?;
-            let priority: String = row.get(3)?;
-            let date: DateTime<Utc> = row.get(4)?;
+            let id: Uuid = row.try_get(0)?;
+            let name: String = row.try_get(1)?;
+            let description: String = row.try_get(2)?;
+            let priority: String = row.try_get(3)?;
+            let date: DateTime<Utc> = row.try_get(4)?;
             result.push(Task::new(id, name, description, priority, date))
         }
 
