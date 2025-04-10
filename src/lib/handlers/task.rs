@@ -4,6 +4,7 @@ use crate::server::TaskState;
 use crate::services::task::TaskService;
 use crate::utils::api_error_response::APIResult;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::{Extension, Json};
 
 pub async fn add_task<T: TaskService>(
@@ -21,4 +22,12 @@ pub async fn get_tasks<T: TaskService>(
 ) -> APIResult<Json<Vec<Task>>> {
     let tasks = app.task_service.get_task(claims).await?;
     Ok(Json(tasks))
+}
+
+pub async fn update_task<T: TaskService>(
+    State(app): State<TaskState<T>>,
+    Json(task): Json<Task>,
+) -> APIResult<StatusCode> {
+    app.task_service.update_task(&task).await?;
+    Ok(StatusCode::OK)
 }
