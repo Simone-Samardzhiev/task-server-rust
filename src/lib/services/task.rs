@@ -1,7 +1,8 @@
 use crate::auth::AccessClaims;
 use crate::models::task::{Task, TaskPayload};
 use crate::repositories::task::TaskRepository;
-use crate::utils::api_error_response::APIResult;
+use crate::utils::api_error_response::{APIErrorResponse, APIResult};
+use axum::http::StatusCode;
 use std::future::Future;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -31,6 +32,14 @@ impl<T: TaskRepository> DefaultTaskService<T> {
 
 impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
     async fn add_task(&self, task: &TaskPayload, claims: AccessClaims) -> APIResult<Task> {
+        let result = self.repository.check_priority(&task.priority).await?;
+        if !result {
+            return Err(APIErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                String::from("Invalid priority"),
+            ));
+        }
+
         let id = Uuid::new_v4();
         let task = Task::new(
             id,
