@@ -29,6 +29,9 @@ pub trait TaskRepository: Send + Sync + Clone + 'static {
 
     /// Method that will update existing task.
     fn update_task(&self, task: &Task) -> impl Future<Output = Result<bool, SQLXError>> + Send;
+
+    /// Method that will delete existing task with specified id.
+    fn delete_task_by_id(&self, id: Uuid) -> impl Future<Output = Result<bool, SQLXError>> + Send;
 }
 
 /// Repository that implements `TaskRepository` using postgres.
@@ -103,6 +106,15 @@ impl TaskRepository for PostgresTaskRepository {
         .bind(task.id)
         .execute(&self.db)
         .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    async fn delete_task_by_id(&self, id: Uuid) -> Result<bool, SQLXError> {
+        let result = query("DELETE FROM tasks WHERE id = $1")
+            .bind(id)
+            .execute(&self.db)
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }
