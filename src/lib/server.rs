@@ -149,11 +149,9 @@ impl Server {
             )
             .nest(
                 "/tasks",
-                Router::new().route(
-                    "/add",
-                    post(handlers::task::add_task)
-                        .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
-                ),
+                Router::new()
+                    .route("/add", post(handlers::task::add_task))
+                    .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
             )
             .with_state(app_state);
 
