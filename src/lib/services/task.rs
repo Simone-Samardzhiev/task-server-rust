@@ -6,8 +6,16 @@ use std::future::Future;
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Service used to manage task business logic.
 pub trait TaskService: Send + Sync + Clone + 'static {
-    fn add_task(task: &TaskPayload, claims: AccessClaims) -> impl Future<Output = APIResult<Task>>;
+    /// Method that will add a new task.
+    /// # Returns
+    /// the newly created task.
+    fn add_task(
+        &self,
+        task: &TaskPayload,
+        claims: AccessClaims,
+    ) -> impl Future<Output = APIResult<Task>>;
 }
 
 #[derive(Clone)]
@@ -22,7 +30,7 @@ impl<T: TaskRepository> DefaultTaskService<T> {
 }
 
 impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
-    fn add_task(task: &TaskPayload, claims: AccessClaims) -> APIResult<Task> {
+    async fn add_task(&self, task: &TaskPayload, claims: AccessClaims) -> APIResult<Task> {
         let id = Uuid::new_v4();
         let task = Task::new(
             id,
@@ -31,5 +39,9 @@ impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
             task.description.clone(),
             task.date,
         );
+
+        self.repository.add_task(&task, claims.sub).await?;
+
+        Ok(task)
     }
 }

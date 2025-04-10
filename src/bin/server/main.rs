@@ -27,9 +27,12 @@ async fn main() {
         authenticator.clone(),
     );
 
+    let task_repository = repositories::task::PostgresTaskRepository::new(database.clone());
+    let task_service = services::task::DefaultTaskService::new(Arc::new(task_repository));
+
     let server_config = ServerConfig::new(&config.server_addr, authenticator.clone());
 
-    let server = Server::new(server_config, user_service)
+    let server = Server::new(server_config, user_service, task_service)
         .await
         .expect("Failed to create a new server");
 

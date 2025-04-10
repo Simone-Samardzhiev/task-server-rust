@@ -1,5 +1,6 @@
 use crate::auth::{refresh_token_claims, Authenticator};
 use crate::handlers;
+use crate::services::task::TaskService;
 use crate::services::user::UserService;
 use axum::extract::FromRef;
 use axum::middleware::from_fn_with_state;
@@ -26,41 +27,86 @@ impl<'a> ServerConfig<'a> {
 
 /// Struct holding the app state.
 #[derive(Clone)]
-pub struct AppState<T>
+pub struct AppState<U, T>
 where
-    T: UserService,
+    U: UserService,
+    T: TaskService,
 {
     /// Service for the users.
-    pub user_service: Arc<T>,
+    pub user_service: Arc<U>,
+    pub task_service: Arc<T>,
     /// Authenticator used to authenticate tokens.
     pub authenticator: Arc<Authenticator>,
 }
 
-impl<T: UserService> AppState<T> {
-    pub fn new(user_service: Arc<T>, authenticator: Arc<Authenticator>) -> Self {
+impl<U, T> AppState<U, T>
+where
+    U: UserService,
+    T: TaskService,
+{
+    pub fn new(
+        user_service: Arc<U>,
+        task_service: Arc<T>,
+        authenticator: Arc<Authenticator>,
+    ) -> Self {
         Self {
             user_service,
+            task_service,
             authenticator,
         }
     }
 }
 
-/// AuthState is sub state of `AppState`
+/// AuthState is substate of `AppState` for authentication.
 #[derive(Clone)]
 pub struct AuthState {
     pub authenticator: Arc<Authenticator>,
 }
 
-impl AuthState {
-    pub fn new(authenticator: Arc<Authenticator>) -> Self {
-        Self { authenticator }
+impl<U, T> FromRef<AppState<U, T>> for AuthState
+where
+    U: UserService,
+    T: TaskService,
+{
+    fn from_ref(state: &AppState<U, T>) -> Self {
+        Self {
+            authenticator: state.authenticator.clone(),
+        }
     }
 }
 
-impl<T: UserService> FromRef<AppState<T>> for AuthState {
-    fn from_ref(state: &AppState<T>) -> Self {
+/// UserState is substate of `AppState` for users.
+#[derive(Clone)]
+pub struct UserState<T: UserService> {
+    pub user_service: Arc<T>,
+}
+
+impl<U, T> FromRef<AppState<U, T>> for UserState<U>
+where
+    U: UserService,
+    T: TaskService,
+{
+    fn from_ref(state: &AppState<U, T>) -> Self {
         Self {
-            authenticator: state.authenticator.clone(),
+            user_service: state.user_service.clone(),
+        }
+    }
+}
+
+/// TaskState is substate of `AppState` for tasks.
+#[derive(Clone)]
+pub struct TaskState<T: TaskService> {
+    pub task_service: Arc<T>,
+}
+
+impl<U, T> FromRef<AppState<U, T>> for TaskState<T>
+where
+    U: UserService,
+    T: TaskService,
+{
+    fn from_ref(state: &AppState<U, T>) -> Self {
+        Self {
+            task_service: state.task_service.clone(),
         }
     }
 }
@@ -76,8 +122,13 @@ impl Server {
     pub async fn new(
         server_config: ServerConfig<'_>,
         user_service: impl UserService,
+        task_service: impl TaskService,
     ) -> Result<Self, std::io::Error> {
-        let app_state = AppState::new(Arc::new(user_service), server_config.authenticator);
+        let app_state = AppState::new(
+            Arc::new(user_service),
+            Arc::new(task_service),
+            server_config.authenticator,
+        );
 
         let tcp_listener = TcpListener::bind(server_config.server_addr).await?;
         let router = Router::new()
@@ -91,6 +142,10 @@ impl Server {
                         get(handlers::user::refresh)
                             .layer(from_fn_with_state(app_state.clone(), refresh_token_claims)),
                     ),
+            )
+            .nest(
+                "/tasks",
+                Router::new().route("/add", post(handlers::task::add_task)),
             )
             .with_state(app_state);
 
