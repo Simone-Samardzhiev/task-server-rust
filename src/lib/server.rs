@@ -151,6 +151,7 @@ impl Server {
                 "/tasks",
                 Router::new()
                     .route("/add", post(handlers::task::add_task))
+                    .route("/get", get(handlers::task::get_tasks))
                     .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
             )
             .with_state(app_state);
