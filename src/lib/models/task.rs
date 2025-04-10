@@ -5,11 +5,11 @@ use uuid::Uuid;
 
 /// Struct holding task data.
 pub struct Task {
-    id: Uuid,
-    name: String,
-    description: String,
-    priority: String,
-    data: chrono::DateTime<Utc>,
+    pub id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub priority: String,
+    pub data: chrono::DateTime<Utc>,
 }
 
 impl Task {
@@ -57,10 +57,10 @@ impl Task {
 
 /// Struct holding new task data.
 pub struct TaskPayload {
-    name: String,
-    description: String,
-    priority: String,
-    data: chrono::DateTime<Utc>,
+    pub name: String,
+    pub description: String,
+    pub priority: String,
+    pub data: chrono::DateTime<Utc>,
 }
 
 impl TaskPayload {
