@@ -26,6 +26,9 @@ pub trait TaskRepository: Send + Sync + Clone + 'static {
         &self,
         user_id: i32,
     ) -> impl Future<Output = Result<Vec<Task>, sqlx::Error>> + Send;
+
+    /// Method that will update existing task.
+    fn update_task(&self, task: &Task) -> impl Future<Output = Result<bool, SQLXError>> + Send;
 }
 
 /// Repository that implements `TaskRepository` using postgres.
@@ -87,5 +90,18 @@ impl TaskRepository for PostgresTaskRepository {
         }
 
         Ok(result)
+    }
+
+    async fn update_task(&self, task: &Task) -> Result<bool, SQLXError> {
+        let result = query(
+            "UPDATE tasks SET name = $2, description = $3, priority = $4, date = $5 WHERE id = $6",
+        )
+        .bind(&task.name)
+        .bind(&task.description)
+        .bind(&task.priority)
+        .bind(&task.date)
+        .execute(&self.db)?;
+
+        Ok(result > 0)
     }
 }
