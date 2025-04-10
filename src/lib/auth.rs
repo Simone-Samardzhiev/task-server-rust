@@ -116,7 +116,7 @@ impl Authenticator {
 fn extract_token(request: &Request) -> Option<String> {
     let header = request
         .headers()
-        .get("Authentication")
+        .get("Authorization")
         .and_then(|v| v.to_str().ok());
 
     match header {
@@ -131,7 +131,7 @@ fn extract_token(request: &Request) -> Option<String> {
     }
 }
 
-async fn access_token_claims(
+pub async fn access_token_claims(
     State(app): State<AuthState>,
     mut request: Request,
     next: Next,
@@ -156,7 +156,7 @@ async fn access_token_claims(
     Ok(response)
 }
 
-async fn refresh_token_claims(
+pub async fn refresh_token_claims(
     State(app): State<AuthState>,
     mut request: Request,
     next: Next,

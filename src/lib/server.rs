@@ -1,8 +1,9 @@
-use crate::auth::Authenticator;
+use crate::auth::{refresh_token_claims, Authenticator};
 use crate::handlers;
 use crate::services::user::UserService;
 use axum::extract::FromRef;
-use axum::routing::post;
+use axum::middleware::from_fn_with_state;
+use axum::routing::{get, post};
 use axum::Router;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -84,7 +85,12 @@ impl Server {
                 "/users",
                 Router::new()
                     .route("/register", post(handlers::user::register))
-                    .route("/login", post(handlers::user::login)),
+                    .route("/login", post(handlers::user::login))
+                    .route(
+                        "/refresh",
+                        get(handlers::user::refresh)
+                            .layer(from_fn_with_state(app_state.clone(), refresh_token_claims)),
+                    ),
             )
             .with_state(app_state);
 

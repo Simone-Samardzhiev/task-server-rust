@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sqlx::{query, Error as SQLError, Executor, PgPool};
+use sqlx::{query, Error as SQLError, Executor, PgPool, Row};
 use std::future::Future;
 use uuid::Uuid;
 
@@ -15,6 +15,15 @@ pub trait TokenRepository: Send + Sync + Clone + 'static {
         exp: NaiveDateTime,
         user_id: i32,
     ) -> impl Future<Output = Result<(), SQLError>> + Send;
+
+    /// Method that will delete token with specified id.
+    ///
+    /// # Errors
+    /// It can return any error related to database connection.
+    ///
+    /// # Returns
+    /// True if token was deleted otherwise false.
+    fn delete_token(&self, id: Uuid) -> impl Future<Output = Result<bool, SQLError>> + Send;
 }
 
 /// `PostgresTokenRepository` is implementation of `TaskRepository` with postgres
@@ -39,5 +48,14 @@ impl TokenRepository for PostgresTokenRepository {
             .await?;
 
         Ok(())
+    }
+
+    async fn delete_token(&self, id: Uuid) -> Result<bool, SQLError> {
+        let result = query("DELETE FROM tokens WHERE id = $1")
+            .bind(id)
+            .execute(&self.db)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
     }
 }

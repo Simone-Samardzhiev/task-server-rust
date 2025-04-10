@@ -1,3 +1,4 @@
+use crate::auth;
 use crate::auth::Authenticator;
 use crate::models::token_group::TokenGroup;
 use crate::models::user::UserPayload;
@@ -11,14 +12,25 @@ use std::ops::Add;
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Service used to manage user business logic.
 pub trait UserService: Send + Sync + Clone + 'static {
+    /// Method used to register the user.
     fn register(
         &self,
         user: &mut UserPayload,
     ) -> impl Future<Output = APIResult<StatusCode>> + Send;
 
+    /// Method used to log in the user.
     fn login(&self, user: &UserPayload) -> impl Future<Output = APIResult<TokenGroup>> + Send;
+
+    /// Method used to register the user.
+    fn refresh(
+        &self,
+        claims: auth::RefreshClaims,
+    ) -> impl Future<Output = APIResult<TokenGroup>> + Send;
 }
+
+/// Service that is default implementation of `UserService`.
 #[derive(Clone)]
 pub struct DefaultUserService<U, T>
 where
@@ -129,5 +141,18 @@ where
         }
 
         self.create_token_group(fetched_user.id).await
+    }
+
+    async fn refresh(&self, claims: auth::RefreshClaims) -> APIResult<TokenGroup> {
+        let result = self.token_repository.delete_token(claims.jti).await?;
+
+        if !result {
+            return Err(APIErrorResponse::new(
+                StatusCode::UNAUTHORIZED,
+                String::from("Unauthorized"),
+            ));
+        }
+
+        self.create_token_group(claims.sub).await
     }
 }
