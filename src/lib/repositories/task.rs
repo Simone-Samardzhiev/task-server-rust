@@ -18,7 +18,7 @@ pub struct PostgresTaskRepository {
 }
 
 impl PostgresTaskRepository {
-    fn new(db: PgPool) -> Self {
+    pub fn new(db: PgPool) -> Self {
         Self { db }
     }
 }
@@ -30,7 +30,7 @@ impl TaskRepository for PostgresTaskRepository {
             .bind(&task.name)
             .bind(&task.description)
             .bind(&task.priority)
-            .bind(&task.data)
+            .bind(&task.date)
             .bind(&user_id)
             .execute(&self.db)
             .await?;
