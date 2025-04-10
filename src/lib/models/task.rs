@@ -9,7 +9,7 @@ pub struct Task {
     pub name: String,
     pub description: String,
     pub priority: String,
-    pub data: chrono::DateTime<Utc>,
+    pub date: chrono::DateTime<Utc>,
 }
 
 impl Task {
@@ -25,7 +25,7 @@ impl Task {
             name,
             description,
             priority,
-            data,
+            date: data,
         }
     }
 
@@ -60,7 +60,7 @@ pub struct TaskPayload {
     pub name: String,
     pub description: String,
     pub priority: String,
-    pub data: chrono::DateTime<Utc>,
+    pub date: chrono::DateTime<Utc>,
 }
 
 impl TaskPayload {
@@ -74,7 +74,7 @@ impl TaskPayload {
             name,
             description,
             priority,
-            data,
+            date: data,
         }
     }
 
