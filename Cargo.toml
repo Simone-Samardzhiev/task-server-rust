@@ -11,7 +11,7 @@ name = "server"
 path = "src/bin/server/main.rs"
 
 [dependencies]
-axum = "0.8.3"
+axum = { version = "0.8.3" }
 tokio = { features = ["full"], version = "1.44.1" }
 serde = { version = "1.0.219", features = ["derive"] }
 dotenvy = "0.15.7"
@@ -19,4 +19,4 @@ sqlx = { version = "0.8.3", features = ["postgres", "runtime-tokio", "uuid", "ch
 uuid = { version = "1.16.0", features = ["serde", "v4", "fast-rng"] }
 bcrypt = "0.17.0"
 jsonwebtoken = "9.3.1"
-chrono = "0.4.40"
+chrono = { version = "0.4.40", features = ["serde"] }

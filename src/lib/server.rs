@@ -1,4 +1,4 @@
-use crate::auth::{refresh_token_claims, Authenticator};
+use crate::auth::{access_token_claims, refresh_token_claims, Authenticator};
 use crate::handlers;
 use crate::services::task::TaskService;
 use crate::services::user::UserService;
@@ -119,11 +119,15 @@ pub struct Server {
 
 impl Server {
     /// `new` will create a new server bound to server address specified in `ServerConfig`
-    pub async fn new(
+    pub async fn new<U, T>(
         server_config: ServerConfig<'_>,
-        user_service: impl UserService,
-        task_service: impl TaskService,
-    ) -> Result<Self, std::io::Error> {
+        user_service: U,
+        task_service: T,
+    ) -> Result<Self, std::io::Error>
+    where
+        U: UserService,
+        T: TaskService,
+    {
         let app_state = AppState::new(
             Arc::new(user_service),
             Arc::new(task_service),
@@ -145,7 +149,11 @@ impl Server {
             )
             .nest(
                 "/tasks",
-                Router::new().route("/add", post(handlers::task::add_task)),
+                Router::new().route(
+                    "/add",
+                    post(handlers::task::add_task)
+                        .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
+                ),
             )
             .with_state(app_state);
 

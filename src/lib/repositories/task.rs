@@ -25,7 +25,9 @@ impl PostgresTaskRepository {
 
 impl TaskRepository for PostgresTaskRepository {
     async fn add_task(&self, task: &Task, user_id: i32) -> Result<(), SQLXError> {
-         query("INSERT INTO tasks (id, name, description, priority, date, user_id) VALUES ($1, $2, $3, $4, $5, $6)")
+        println!("Executing query for adding task with task {:?}", task);
+
+        query("INSERT INTO tasks (id, name, description, priority, date, user_id) VALUES ($1, $2, $3, $4, $5, $6)")
             .bind(&task.id)
             .bind(&task.name)
             .bind(&task.description)

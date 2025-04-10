@@ -1,9 +1,11 @@
 use crate::utils::api_error_response::APIErrorResponse;
 use axum::http::StatusCode;
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Struct holding task data.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Task {
     pub id: Uuid,
     pub name: String,
@@ -56,6 +58,7 @@ impl Task {
 }
 
 /// Struct holding new task data.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TaskPayload {
     pub name: String,
     pub description: String,

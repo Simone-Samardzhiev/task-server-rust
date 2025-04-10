@@ -15,7 +15,7 @@ pub trait TaskService: Send + Sync + Clone + 'static {
         &self,
         task: &TaskPayload,
         claims: AccessClaims,
-    ) -> impl Future<Output = APIResult<Task>>;
+    ) -> impl Future<Output = APIResult<Task>> + Send;
 }
 
 #[derive(Clone)]
@@ -35,8 +35,8 @@ impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
         let task = Task::new(
             id,
             task.name.clone(),
-            task.priority.clone(),
             task.description.clone(),
+            task.priority.clone(),
             task.date,
         );
 
