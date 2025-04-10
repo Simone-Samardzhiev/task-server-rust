@@ -100,8 +100,9 @@ impl TaskRepository for PostgresTaskRepository {
         .bind(&task.description)
         .bind(&task.priority)
         .bind(&task.date)
-        .execute(&self.db)?;
+        .execute(&self.db)
+        .await?;
 
-        Ok(result > 0)
+        Ok(result.rows_affected() > 0)
     }
 }
