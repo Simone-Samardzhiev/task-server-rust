@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sqlx::{query, Error as SQLError, Executor, PgPool, Row};
+use sqlx::{query, Error as SQLError, PgPool};
 use std::future::Future;
 use uuid::Uuid;
 
