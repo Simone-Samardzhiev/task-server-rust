@@ -35,7 +35,7 @@ pub trait UserRepository: Send + Sync + Clone + 'static {
     fn get_user_by_email(
         &self,
         email: &str,
-    ) -> impl Future<Output = Result<user::User, sqlx::Error>> + Send;
+    ) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
 }
 
 /// `PostgresUserRepository` is implementation of `UserRepository` with postgres
