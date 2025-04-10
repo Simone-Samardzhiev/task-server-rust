@@ -25,6 +25,9 @@ pub trait TaskService: Send + Sync + Clone + 'static {
 
     /// Method that will update an existing task.
     fn update_task(&self, task: &Task) -> impl Future<Output = APIResult<()>> + Send;
+
+    /// Method that will delete task by id.
+    fn delete_task(&self, id: Uuid) -> impl Future<Output = APIResult<()>> + Send;
 }
 
 #[derive(Clone)]
@@ -83,5 +86,16 @@ impl<T: TaskRepository> TaskService for DefaultTaskService<T> {
         }
 
         Ok(())
+    }
+
+    async fn delete_task(&self, id: Uuid) -> APIResult<()> {
+        if self.repository.delete_task_by_id(id).await? {
+            return Ok(());
+        }
+
+        Err(APIErrorResponse::new(
+            StatusCode::NOT_FOUND,
+            String::from("Task not found"),
+        ))
     }
 }
