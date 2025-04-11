@@ -21,4 +21,6 @@ WORKDIR /app
 
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/server /app/server
 
+EXPOSE 8080
+
 CMD ["/app/server"]
