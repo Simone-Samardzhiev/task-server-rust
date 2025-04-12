@@ -8,12 +8,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
-
-RUN cargo build --release --target=x86_64-unknown-linux-musl
-
-COPY src src
-
-RUN touch src/lib/lib.rs src/bin/server/main.rs
+COPY src/ src/
 
 RUN cargo build --release --target=x86_64-unknown-linux-musl
 
