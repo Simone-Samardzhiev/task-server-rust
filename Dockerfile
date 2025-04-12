@@ -1,5 +1,5 @@
 # Builder stage
-FROM rust:latest as builder
+FROM messense/rust-musl-cross:x86_64-musl as builder
 WORKDIR /app
 COPY . .
 
