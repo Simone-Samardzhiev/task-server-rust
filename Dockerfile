@@ -16,4 +16,6 @@ FROM alpine:latest
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/server .
+
+EXPOSE 8080
 CMD ["./server"]
