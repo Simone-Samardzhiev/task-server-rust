@@ -1,7 +1,9 @@
 # task-server-rust
 
-Web server that will store task with features like, register
-login for users and get, add, update, delete tasks for tasks.
+Restfull API allowing users to register and login.
+The authentication is realized with JWT and bcrypt for securely store
+passwords. The API allows for creating tasks, updating, fetching and deleting tasks
+stored in the database.
 
 ## Table of content
 
@@ -11,10 +13,10 @@ login for users and get, add, update, delete tasks for tasks.
 
 ## About the project
 
-Web server used to help user stay organized by storing tasks. It includes
+API used to help user stay organized by storing tasks. It includes
 
 - JWT-based authentication
-- Task creation, updating and deleting
+- Task creation, updating, fetching and deleting
 - Database integration with postgres
 
 ## Installation
@@ -23,7 +25,7 @@ Follow the steps to build and run the server locally.
 
 ### Prerequisites
 
-1. Rust(1.84.0)
+1. Rust(1.86.0)
 2. PostgresSQL
 3. Git
 
@@ -40,7 +42,7 @@ cd task-server-rust
 
 ```ini
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
-SERVER_SOCKET=127.0.0.1:8080
+SERVER_ADDR=127.0.0.1:8080
 JWT_SECRET=secret
 ```
 
@@ -61,16 +63,29 @@ The endpoint allows users to register.
 
 #### **Request Body**
 
-The body of the request should contain user credentials
+The body of the request should contain the user credentials
 
 ```json
 {
   "email": "exmaple@email.com",
-  "password": "password123"
+  "username": "Someone",
+  "password": "Password_123"
 }
 ```
 
-### 2. **POST /users/login**
+The user payload is validated before being accepted.
+If the email or the username is already in use the API will return an error.
+Also, there are more requirements for the user credentials:
+
+1. The email should be properly formated with valid local and domain part.
+2. The username should be less than 8 letters
+3. The password should be secure:
+    1. At least one capital letter
+    2. At least one small letter
+    3. At least one number.
+    4. At least one special character(! " # $ % & ' ( ) * + , - . : ; < = > ? [ \ ] ^ _ `{ | } ~)
+
+### 2. POST /users/login
 
 The endpoint allows user to receive JWT refresh and access token.
 
@@ -81,7 +96,8 @@ The body of the request should contain user credentials
 ```json
 {
   "email": "exmaple@email.com",
-  "password": "password123"
+  "username": "Someone",
+  "password": "Password_123"
 }
 ```
 
@@ -97,7 +113,7 @@ If not the response will be like:
 }
 ```
 
-### 3. **GET /users/refresh**
+### 3. GET /users/refresh
 
 The endpoint allows user to send refresh to token, for a new refresh and access token.
 
@@ -117,7 +133,7 @@ If not the response will be like:
 }
 ```
 
-### 4. **GET /tasks/get**
+### 4. GET /tasks/get
 
 The endpoint allows user to get all their tasks.
 
@@ -136,15 +152,13 @@ If not the response will be like:
     "id": "ffafdd8a-20ba-452f-b5b4-37d98b091ba0",
     "name": "Task name",
     "description": "Task description",
-    "type": 1,
-    "due_date": "2025-02-01T17:30:00+02:00",
-    "date_completed": "0001-01-01T01:33:16+01:33",
-    "date_deleted": "0001-01-01T01:33:16+01:33"
+    "priority": "Low",
+    "date": "2025-03-15T16:03:30Z"
   }
 ]
 ```
 
-### 5. **POST /tasks/add**
+### 5. POST /tasks/add
 
 The endpoint allows user to add a new task.
 
@@ -160,10 +174,14 @@ The body should contain the task information
 {
   "name": "Name",
   "description": "Description",
-  "type": 1,
-  "due_date": "2025-02-01T17:30:00+02:00"
+  "priority": "Low",
+  "data": "2025-03-15T16:03:30Z"
 }
 ```
+
+The task payload is also validated before storing it.
+None of the filed can be empty. Also, the priority will be checked by the database.
+You could easily adjust the priority by updating **Priorities** table
 
 #### **Response**
 
@@ -175,10 +193,8 @@ If not the response will be like:
   "id": "ffafdd8a-20ba-452f-b5b4-37d98b091ba0",
   "name": "Name",
   "description": "Description",
-  "type": 1,
-  "due_date": "2025-02-01T17:30:00+02:00",
-  "date_completed": null,
-  "date_deleted": null
+  "priority": "Vital",
+  "date": "2025-03-15T16:03:30Z"
 }
 ```
 
@@ -199,12 +215,11 @@ The body should contain the token information
   "id": "ffafdd8a-20ba-452f-b5b4-37d98b091ba0",
   "name": "Task name",
   "description": "Task description",
-  "type": 1,
-  "due_date": "2025-02-01T17:30:00+02:00",
-  "date_completed": "0001-01-01T01:33:16+01:33",
-  "date_deleted": "0001-01-01T01:33:16+01:33"
+  "type": "High",
+  "date": "2025-03-15T16:03:30Z"
 }
 ```
+Note that updating task also validate the payload.
 
 #### **Response**
 
