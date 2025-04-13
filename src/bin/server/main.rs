@@ -2,9 +2,10 @@ use auth::Authenticator;
 use dotenvy::dotenv;
 use server::config::Config;
 use server::server::{Server, ServerConfig};
-use server::{auth, repositories, services};
+use server::{auth, repositories, services, utils};
 use sqlx::PgPool;
 use std::sync::Arc;
+use utils::clean_tokens::clean_tokens;
 
 #[tokio::main]
 async fn main() {
@@ -16,6 +17,7 @@ async fn main() {
     let database = PgPool::connect(&config.database_url)
         .await
         .expect("Failed to connect to database");
+    clean_tokens(database.clone());
 
     let authenticator = Arc::new(Authenticator::new(config.secret));
 
