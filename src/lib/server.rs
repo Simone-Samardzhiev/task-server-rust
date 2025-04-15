@@ -137,24 +137,30 @@ impl Server {
         let tcp_listener = TcpListener::bind(server_config.server_addr).await?;
         let router = Router::new()
             .nest(
-                "/users",
+                "/api/v1",
                 Router::new()
-                    .route("/register", post(handlers::user::register))
-                    .route("/login", post(handlers::user::login))
-                    .route(
-                        "/refresh",
-                        get(handlers::user::refresh)
-                            .layer(from_fn_with_state(app_state.clone(), refresh_token_claims)),
+                    .nest(
+                        "/users",
+                        Router::new()
+                            .route("/register", post(handlers::user::register))
+                            .route("/login", post(handlers::user::login))
+                            .route(
+                                "/refresh",
+                                get(handlers::user::refresh).layer(from_fn_with_state(
+                                    app_state.clone(),
+                                    refresh_token_claims,
+                                )),
+                            ),
+                    )
+                    .nest(
+                        "/tasks",
+                        Router::new()
+                            .route("/add", post(handlers::task::add_task))
+                            .route("/get", get(handlers::task::get_tasks))
+                            .route("/update", put(handlers::task::update_task))
+                            .route("/delete/{id}", delete(handlers::task::delete_task))
+                            .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
                     ),
-            )
-            .nest(
-                "/tasks",
-                Router::new()
-                    .route("/add", post(handlers::task::add_task))
-                    .route("/get", get(handlers::task::get_tasks))
-                    .route("/update", put(handlers::task::update_task))
-                    .route("/delete/{id}", delete(handlers::task::delete_task))
-                    .layer(from_fn_with_state(app_state.clone(), access_token_claims)),
             )
             .with_state(app_state);
 
